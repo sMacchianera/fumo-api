@@ -2,7 +2,7 @@ from flask import Flask, jsonify
 import requests
 from bs4 import BeautifulSoup
 
-app = Flask(app.py)
+app = Flask(__name__)
 
 @app.route("/api/fumo")
 def fumo_data():
