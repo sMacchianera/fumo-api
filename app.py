@@ -11,15 +11,17 @@ def get_world_deaths():
         headers = {"User-Agent": "Mozilla/5.0"}
         response = requests.get(url, headers=headers, timeout=10)
         soup = BeautifulSoup(response.text, "html.parser")
-        counter = soup.find("span", {"rel": "current_population"})
-        number = int(counter.text.replace(",", ""))
-        return number
+        # Cerca il contatore principale (di solito il primo 'div' con classe 'maincounter-number')
+        number_div = soup.select_one("div.maincounter-number span")
+        if number_div:
+            return int(number_div.text.replace(",", ""))
+        else:
+            raise ValueError("Contatore non trovato nel DOM")
     except Exception as e:
         return None
 
 def estimate_italy_deaths():
-    # Stima su base annua (fonte ISS): 93.000 morti
-    deaths_per_year = 93000
+    deaths_per_year = 93000  # Stima ISS
     now = datetime.now()
     start_of_year = datetime(now.year, 1, 1)
     seconds_passed = (now - start_of_year).total_seconds()
@@ -32,7 +34,11 @@ def fumo_data():
     world = get_world_deaths()
     italy = estimate_italy_deaths()
     if world is None:
-        return jsonify({"error": "World data unavailable"}), 503
+        return jsonify({
+            "error": "Scraping failed. World data unavailable.",
+            "world_deaths": None,
+            "italy_estimate": italy
+        }), 503
     return jsonify({
         "world_deaths": world,
         "italy_estimate": italy
