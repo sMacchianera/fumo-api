@@ -1,48 +1,24 @@
 from flask import Flask, jsonify
-import requests
-from bs4 import BeautifulSoup
 from datetime import datetime
 
 app = Flask(__name__)
 
-def get_world_deaths():
-    try:
-        url = "https://www.worldometers.info/smoking/"
-        headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(url, headers=headers, timeout=10)
-
-        if response.status_code != 200:
-            raise Exception(f"Errore HTTP {response.status_code}")
-
-        soup = BeautifulSoup(response.text, "html.parser")
-        number_div = soup.select_one("div.maincounter-number span")
-
-        if not number_div:
-            raise Exception("Contatore non trovato nel DOM")
-
-        return int(number_div.text.replace(",", ""))
-
-    except Exception as e:
-        print(f"Errore scraping: {e}")
-        return None
-
-def estimate_italy_deaths():
-    deaths_per_year = 93000  # Stima ISS
+def get_deaths_since_jan1(yearly_total):
     now = datetime.now()
     start_of_year = datetime(now.year, 1, 1)
     seconds_passed = (now - start_of_year).total_seconds()
-    seconds_per_year = 365.25 * 24 * 3600
-    estimated = int((seconds_passed / seconds_per_year) * deaths_per_year)
-    return estimated
+    seconds_in_year = 365.25 * 24 * 60 * 60
+    return int((seconds_passed / seconds_in_year) * yearly_total)
 
 @app.route("/api/fumo")
-def fumo_data():
-    world = get_world_deaths()
-    italy = estimate_italy_deaths()
+def deaths_data():
+    world_total = 8000000
+    italy_total = 93000
     return jsonify({
-        "world_deaths": world,
-        "italy_estimate": italy,
-        "source": "worldometers.info"
+        "world_deaths": get_deaths_since_jan1(world_total),
+        "italy_deaths": get_deaths_since_jan1(italy_total),
+        "source": "Simulazione basata su dati OMS e ISS",
+        "timestamp": datetime.now().isoformat()
     })
 
 if __name__ == "__main__":
